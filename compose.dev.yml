@@ -1,0 +1,41 @@
+services:
+  backend:
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:2326@db:5432/postgres
+      secret_key: ${SESSION_SECRET}
+      access_token_expire_minutes: 60
+      AGENT_WEB_SEARCH_CONTEXT_LIMIT: 20
+      AGENT_MAX_CONVERSATION_HISTORY: 40
+      LANGSMITH_TRACING: true
+      LANGSMITH_ENDPOINT: https://api.smith.langchain.com
+      LANGSMITH_PROJECT: graduation-medical
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+    build:
+      context: ./backend
+      target: development
+    volumes:
+      - ./backend:/app
+    depends_on: [db]
+    ports: ["8000:8000"]   # uvicorn --reload inside Dockerfile or entrypoint
+
+  frontend:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_INTERNAL_URL: http://backend:8000
+      SESSION_SECRET: ${SESSION_SECRET}
+      WATCHPACK_POLLING: "true"
+    command: sh -c "npm ci && npm run dev"
+    ports: ["3000:3000"]
+    depends_on: [backend]
+
+volumes:
+  node_modules: {}
